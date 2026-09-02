@@ -32,8 +32,12 @@ namespace Aegis.Api.Controllers
         [HttpPost("register")]
         public async Task<IActionResult> Register(RegisterRequest request)
         {
+            var normalizedEmail = request.Email
+                .Trim()
+                .ToLowerInvariant();
+
             var emailExists = await _context.Users
-                .AnyAsync(user => user.Email == request.Email);
+                .AnyAsync(user => user.Email == normalizedEmail);
 
             if (emailExists)
             {
@@ -42,7 +46,7 @@ namespace Aegis.Api.Controllers
 
             var user = new User
             {
-                Email = request.Email
+                Email = normalizedEmail
             };
 
             user.PasswordHash = _passwordHasher.HashPassword(
@@ -65,8 +69,12 @@ namespace Aegis.Api.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login(LoginRequest request)
         {
+            var normalizedEmail = request.Email
+                .Trim()
+                .ToLowerInvariant();
+
             var user = await _context.Users
-                .FirstOrDefaultAsync(user => user.Email == request.Email);
+                .FirstOrDefaultAsync(user => user.Email == normalizedEmail);
 
             if (user == null)
             {
