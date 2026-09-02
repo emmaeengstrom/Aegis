@@ -14,6 +14,8 @@ namespace Aegis.Api.Data
 
         public DbSet<User> Users { get; set; }
 
+        public DbSet<ProjectMember> ProjectMembers { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -21,6 +23,23 @@ namespace Aegis.Api.Data
             modelBuilder.Entity<User>()
                 .HasIndex(user => user.Email)
                 .IsUnique();
+
+            modelBuilder.Entity<ProjectMember>()
+                .HasKey(projectMember => new
+                {
+                    projectMember.ProjectId,
+                    projectMember.UserId
+                });
+
+            modelBuilder.Entity<ProjectMember>()
+                .HasOne(projectMember => projectMember.Project)
+                .WithMany(project => project.Members)
+                .HasForeignKey(projectMember => projectMember.ProjectId);
+
+            modelBuilder.Entity<ProjectMember>()
+                .HasOne(projectMember => projectMember.User)
+                .WithMany(user => user.ProjectMemberships)
+                .HasForeignKey(projectMember => projectMember.UserId);
         }
     }
 }

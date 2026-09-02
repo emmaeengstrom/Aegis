@@ -1,8 +1,7 @@
 @Aegis.Api_HostAddress = https://localhost:7269
 
-@token =
-@token2 =
-
+@token = 
+@token2 = 
 
 ### =========================
 ### AUTHENTICATION
@@ -24,7 +23,7 @@ POST {{Aegis.Api_HostAddress}}/api/auth/login
 Content-Type: application/json
 
 {
-  "email": "emma@example.com",
+  "email": "EMma@eXample.com",
   "password": "SecurePassword123!"
 }
 
@@ -153,3 +152,51 @@ Authorization: Bearer {{token}}
 ### Try accessing projects without token
 GET {{Aegis.Api_HostAddress}}/api/projects
 Accept: application/json
+
+### User 1 adds user 2 as project member
+POST {{Aegis.Api_HostAddress}}/api/projects/3/members
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "email": "user2@example.com"
+} 
+
+### User 2 tries to add a member to user 1 project
+POST {{Aegis.Api_HostAddress}}/api/projects/3/members
+Content-Type: application/json
+Authorization: Bearer {{token2}}
+
+{
+  "email": "emma@example.com"
+}
+
+### User 2 reads project as member
+GET {{Aegis.Api_HostAddress}}/api/projects/3
+Accept: application/json
+Authorization: Bearer {{token2}} 
+
+### User 2 lists accessible projects
+GET {{Aegis.Api_HostAddress}}/api/projects
+Accept: application/json
+Authorization: Bearer {{token2}}
+
+### User 2 tries to update project
+PUT {{Aegis.Api_HostAddress}}/api/projects/3
+Content-Type: application/json
+Authorization: Bearer {{token2}}
+
+{
+  "name": "Unauthorized update",
+  "description": "This should still fail"
+}
+
+### User 1 lists project members
+GET {{Aegis.Api_HostAddress}}/api/projects/3/members
+Accept: application/json
+Authorization: Bearer {{token}} 
+
+### User 2 tries to list project members
+GET {{Aegis.Api_HostAddress}}/api/projects/3/members
+Accept: application/json
+Authorization: Bearer {{token2}}

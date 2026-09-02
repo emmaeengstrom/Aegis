@@ -11,5 +11,7 @@
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public List<Project> Projects { get; set; } = new();
+
+        public List<ProjectMember> ProjectMemberships { get; set; } = new();
     }
-}
+} 

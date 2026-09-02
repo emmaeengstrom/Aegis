@@ -32,7 +32,10 @@ namespace Aegis.Api.Controllers
             }
 
             var projects = await _context.Projects
-                .Where(project => project.OwnerId == userId)
+                .Where(project =>
+                    project.OwnerId == userId ||
+                    project.Members.Any(member => member.UserId == userId)
+                )
                 .Select(project => new ProjectResponse
                 {
                     Id = project.Id,
@@ -59,7 +62,10 @@ namespace Aegis.Api.Controllers
             var project = await _context.Projects
                 .FirstOrDefaultAsync(project =>
                     project.Id == id &&
-                    project.OwnerId == userId
+                    (
+                        project.OwnerId == userId ||
+                        project.Members.Any(member => member.UserId == userId)
+                    )
                 );
 
             if (project == null)
@@ -147,6 +153,119 @@ namespace Aegis.Api.Controllers
 
             return NoContent();
         }
+
+        // POST: /api/projects/1/members
+        [HttpPost("{id}/members")]
+        public async Task<IActionResult> AddProjectMember(
+            int id,
+            AddProjectMemberRequest request)
+        {
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (!int.TryParse(userIdClaim, out var currentUserId))
+            {
+                return Unauthorized();
+            }
+
+            var project = await _context.Projects
+                .FirstOrDefaultAsync(project =>
+                    project.Id == id &&
+                    project.OwnerId == currentUserId
+                );
+
+            if (project == null)
+            {
+                return NotFound();
+            }
+
+            var normalizedEmail = request.Email
+                .Trim()
+                .ToLowerInvariant();
+
+            var userToAdd = await _context.Users
+                .FirstOrDefaultAsync(user =>
+                    user.Email == normalizedEmail
+                );
+
+            if (userToAdd == null)
+            {
+                return NotFound("User not found.");
+            }
+
+            if (userToAdd.Id == currentUserId)
+            {
+                return BadRequest(
+                    "The project owner cannot be added as a member."
+                );
+            }
+
+            var membershipExists = await _context.ProjectMembers
+                .AnyAsync(member =>
+                    member.ProjectId == id &&
+                    member.UserId == userToAdd.Id
+                );
+
+            if (membershipExists)
+            {
+                return Conflict(
+                    "The user is already a member of this project."
+                );
+            }
+
+            var projectMember = new ProjectMember
+            {
+                ProjectId = id,
+                UserId = userToAdd.Id,
+                Role = "Member"
+            };
+
+            _context.ProjectMembers.Add(projectMember);
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                userToAdd.Id,
+                userToAdd.Email,
+                projectMember.Role
+            });
+        }
+
+        // GET: /api/projects/1/members
+        [HttpGet("{id}/members")]
+        public async Task<IActionResult> GetProjectMembers(int id)
+        {
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (!int.TryParse(userIdClaim, out var currentUserId))
+            {
+                return Unauthorized();
+            }
+
+            var project = await _context.Projects
+                .FirstOrDefaultAsync(project =>
+                    project.Id == id &&
+                    project.OwnerId == currentUserId
+                );
+
+            if (project == null)
+            {
+                return NotFound();
+            }
+
+            var members = await _context.ProjectMembers
+                .Where(member => member.ProjectId == id)
+                .Select(member => new
+                {
+                    member.UserId,
+                    member.User.Email,
+                    member.Role
+                })
+                .ToListAsync();
+
+            return Ok(members);
+        }
+
 
         // DELETE: /api/projects/1
         [HttpDelete("{id}")]
