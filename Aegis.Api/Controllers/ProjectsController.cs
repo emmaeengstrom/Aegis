@@ -107,6 +107,18 @@ namespace Aegis.Api.Controllers
 
             await _context.SaveChangesAsync();
 
+            var auditLog = new AuditLog
+            {
+                UserId = userId,
+                ProjectId = project.Id,
+                Action = "ProjectCreated",
+                Details = $"Created project '{project.Name}'."
+            };
+
+            _context.AuditLogs.Add(auditLog);
+
+            await _context.SaveChangesAsync();
+
             var response = new ProjectResponse
             {
                 Id = project.Id,
@@ -154,6 +166,16 @@ namespace Aegis.Api.Controllers
 
             project.Name = request.Name;
             project.Description = request.Description;
+
+            var auditLog = new AuditLog
+            {
+                UserId = userId,
+                ProjectId = id,
+                Action = "ProjectUpdated",
+                Details = "Updated project name or description."
+            };
+
+            _context.AuditLogs.Add(auditLog);
 
             await _context.SaveChangesAsync();
 
@@ -237,6 +259,16 @@ namespace Aegis.Api.Controllers
 
             _context.ProjectMembers.Add(projectMember);
 
+            var auditLog = new AuditLog
+            {
+                UserId = currentUserId,
+                ProjectId = id,
+                Action = "ProjectMemberAdded",
+                Details = $"Added user {userToAdd.Id} as {normalizedRole}."
+            };
+
+            _context.AuditLogs.Add(auditLog);
+
             await _context.SaveChangesAsync();
 
             return Ok(new
@@ -280,6 +312,48 @@ namespace Aegis.Api.Controllers
                 .ToListAsync();
 
             return Ok(members);
+        }
+
+        // GET: /api/projects/1/audit-logs
+        [HttpGet("{id}/audit-logs")]
+        public async Task<ActionResult<IEnumerable<AuditLogResponse>>> GetAuditLogs(int id)
+        {
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (!int.TryParse(userIdClaim, out var userId))
+            {
+                return Unauthorized();
+            }
+
+            var hasAccess = await _context.Projects
+                .AnyAsync(project =>
+                    project.Id == id &&
+                    (
+                        project.OwnerId == userId ||
+                        project.Members.Any(member => member.UserId == userId)
+                    )
+                );
+
+            if (!hasAccess)
+            {
+                return NotFound();
+            }
+
+            var auditLogs = await _context.AuditLogs
+                .Where(auditLog => auditLog.ProjectId == id)
+                .OrderByDescending(auditLog => auditLog.CreatedAt)
+                .Select(auditLog => new AuditLogResponse
+                {
+                    Id = auditLog.Id,
+                    UserId = auditLog.UserId,
+                    UserEmail = auditLog.User.Email,
+                    Action = auditLog.Action,
+                    Details = auditLog.Details,
+                    CreatedAt = auditLog.CreatedAt
+                })
+                .ToListAsync();
+
+            return Ok(auditLogs);
         }
 
         // PUT: /api/projects/1/members/2/role
@@ -328,7 +402,19 @@ namespace Aegis.Api.Controllers
                 return NotFound("Project member not found.");
             }
 
+            var oldRole = membership.Role;
+
             membership.Role = normalizedRole;
+
+            var auditLog = new AuditLog
+            {
+                UserId = currentUserId,
+                ProjectId = id,
+                Action = "ProjectMemberRoleChanged",
+                Details = $"Changed user {userId} role from {oldRole} to {normalizedRole}."
+            };
+
+            _context.AuditLogs.Add(auditLog);
 
             await _context.SaveChangesAsync();
 
@@ -371,6 +457,16 @@ namespace Aegis.Api.Controllers
             }
 
             _context.ProjectMembers.Remove(membership);
+
+            var auditLog = new AuditLog
+            {
+                UserId = currentUserId,
+                ProjectId = id,
+                Action = "ProjectMemberRemoved",
+                Details = $"Removed user {userId} from the project."
+            };
+
+            _context.AuditLogs.Add(auditLog);
 
             await _context.SaveChangesAsync();
 

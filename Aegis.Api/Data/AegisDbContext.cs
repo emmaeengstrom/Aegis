@@ -16,6 +16,8 @@ namespace Aegis.Api.Data
 
         public DbSet<ProjectMember> ProjectMembers { get; set; }
 
+        public DbSet<AuditLog> AuditLogs { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -40,6 +42,18 @@ namespace Aegis.Api.Data
                 .HasOne(projectMember => projectMember.User)
                 .WithMany(user => user.ProjectMemberships)
                 .HasForeignKey(projectMember => projectMember.UserId);
+
+            modelBuilder.Entity<AuditLog>()
+                .HasOne(auditLog => auditLog.User)
+                .WithMany()
+                .HasForeignKey(auditLog => auditLog.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<AuditLog>()
+                .HasOne(auditLog => auditLog.Project)
+                .WithMany()
+                .HasForeignKey(auditLog => auditLog.ProjectId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

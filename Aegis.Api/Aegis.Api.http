@@ -1,6 +1,9 @@
 @Aegis.Api_HostAddress = https://localhost:7269
+
 @token =
 @token2 =
+@token3 =
+
 @projectId = 3
 @user2Id = 2
 
@@ -164,6 +167,12 @@ Accept: application/json
 Authorization: Bearer {{token2}}
 
 
+### Viewer can list accessible projects
+GET {{Aegis.Api_HostAddress}}/api/projects
+Accept: application/json
+Authorization: Bearer {{token2}}
+
+
 ### Viewer cannot update project
 PUT {{Aegis.Api_HostAddress}}/api/projects/{{projectId}}
 Content-Type: application/json
@@ -173,6 +182,11 @@ Authorization: Bearer {{token2}}
   "name": "Viewer should not update this",
   "description": "This request should be blocked."
 }
+
+
+### Viewer cannot delete project
+DELETE {{Aegis.Api_HostAddress}}/api/projects/{{projectId}}
+Authorization: Bearer {{token2}}
 
 
 ### =========================
@@ -189,7 +203,7 @@ Authorization: Bearer {{token}}
 }
 
 
-### Verify role
+### Verify user 2 role
 GET {{Aegis.Api_HostAddress}}/api/projects/{{projectId}}/members
 Accept: application/json
 Authorization: Bearer {{token}}
@@ -220,7 +234,7 @@ Authorization: Bearer {{token2}}
 ### PRIVILEGE ESCALATION TESTS
 ### =========================
 
-### Change user 2 back to Viewer
+### Owner changes user 2 back to Viewer
 PUT {{Aegis.Api_HostAddress}}/api/projects/{{projectId}}/members/{{user2Id}}/role
 Content-Type: application/json
 Authorization: Bearer {{token}}
@@ -230,7 +244,7 @@ Authorization: Bearer {{token}}
 }
 
 
-### User 2 cannot promote themselves
+### User 2 cannot promote themselves to Editor
 PUT {{Aegis.Api_HostAddress}}/api/projects/{{projectId}}/members/{{user2Id}}/role
 Content-Type: application/json
 Authorization: Bearer {{token2}}
@@ -238,6 +252,58 @@ Authorization: Bearer {{token2}}
 {
   "role": "Editor"
 }
+
+
+### =========================
+### AUDIT LOGS
+### =========================
+
+### Owner reads project audit logs
+GET {{Aegis.Api_HostAddress}}/api/projects/{{projectId}}/audit-logs
+Accept: application/json
+Authorization: Bearer {{token}}
+
+
+### Viewer reads project audit logs
+GET {{Aegis.Api_HostAddress}}/api/projects/{{projectId}}/audit-logs
+Accept: application/json
+Authorization: Bearer {{token2}}
+
+
+### =========================
+### OUTSIDER AUTHORIZATION
+### =========================
+
+### Register user 3
+POST {{Aegis.Api_HostAddress}}/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "user3@example.com",
+  "password": "SecurePassword789!"
+}
+
+
+### Login user 3
+POST {{Aegis.Api_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "user3@example.com",
+  "password": "SecurePassword789!"
+}
+
+
+### Outsider cannot read project
+GET {{Aegis.Api_HostAddress}}/api/projects/{{projectId}}
+Accept: application/json
+Authorization: Bearer {{token3}}
+
+
+### Outsider cannot read project audit logs
+GET {{Aegis.Api_HostAddress}}/api/projects/{{projectId}}/audit-logs
+Accept: application/json
+Authorization: Bearer {{token3}}
 
 
 ### =========================
@@ -251,6 +317,12 @@ Authorization: Bearer {{token}}
 
 ### Removed user can no longer read project
 GET {{Aegis.Api_HostAddress}}/api/projects/{{projectId}}
+Accept: application/json
+Authorization: Bearer {{token2}}
+
+
+### Removed user can no longer read audit logs
+GET {{Aegis.Api_HostAddress}}/api/projects/{{projectId}}/audit-logs
 Accept: application/json
 Authorization: Bearer {{token2}}
 
