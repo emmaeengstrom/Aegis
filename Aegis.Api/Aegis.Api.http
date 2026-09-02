@@ -1,0 +1,76 @@
+@Aegis.Api_HostAddress = http://localhost:5139
+
+### Get all projects
+
+GET {{Aegis.Api_HostAddress}}/api/projects
+Accept: application/json
+
+### Get project with ID 1
+
+GET {{Aegis.Api_HostAddress}}/api/projects/1
+Accept: application/json
+
+### Create a project
+
+POST {{Aegis.Api_HostAddress}}/api/projects
+Content-Type: application/json
+
+{
+  "name": "Pentest Platform",
+  "description": "Internal platform for security testing"
+}
+
+### Update project with ID 1
+
+PUT {{Aegis.Api_HostAddress}}/api/projects/1
+Content-Type: application/json
+
+{
+  "id": 1,
+  "name": "Pentest Platform Updated",
+  "description": "Updated internal platform for security testing"
+}
+
+### Delete project with ID 1
+
+DELETE {{Aegis.Api_HostAddress}}/api/projects/1
+
+
+### Test validation - missing name
+
+POST {{Aegis.Api_HostAddress}}/api/projects
+Content-Type: application/json
+
+{
+  "description": "This request should fail because name is missing"
+}
+
+### Register user
+
+POST {{Aegis.Api_HostAddress}}/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "emma@example.com",
+  "password": "SecurePassword123!"
+}
+
+  ### Login with correct password
+
+POST {{Aegis.Api_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "emma@example.com",
+  "password": "SecurePassword123!"
+} 
+
+### Login with wrong password
+
+POST {{Aegis.Api_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "emma@example.com",
+  "password": "WrongPassword123!"
+}
