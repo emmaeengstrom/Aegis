@@ -1,54 +1,15 @@
 @Aegis.Api_HostAddress = https://localhost:7269
-@token = YOUR_JWT_TOKEN_HERE
+
+@token =
+@token2 =
 
 
-### Get all projects
-
-GET {{Aegis.Api_HostAddress}}/api/projects
-Accept: application/json
-
-### Get project with ID 1
-
-GET {{Aegis.Api_HostAddress}}/api/projects/1
-Accept: application/json
-
-### Create a project
-
-POST {{Aegis.Api_HostAddress}}/api/projects
-Content-Type: application/json
-
-{
-  "name": "Pentest Platform",
-  "description": "Internal platform for security testing"
-}
-
-### Update project with ID 1
-
-PUT {{Aegis.Api_HostAddress}}/api/projects/1
-Content-Type: application/json
-
-{
-  "id": 1,
-  "name": "Pentest Platform Updated",
-  "description": "Updated internal platform for security testing"
-}
-
-### Delete project with ID 1
-
-DELETE {{Aegis.Api_HostAddress}}/api/projects/1
+### =========================
+### AUTHENTICATION
+### =========================
 
 
-### Test validation - missing name
-
-POST {{Aegis.Api_HostAddress}}/api/projects
-Content-Type: application/json
-
-{
-  "description": "This request should fail because name is missing"
-}
-
-### Register user
-
+### Register user 1
 POST {{Aegis.Api_HostAddress}}/api/auth/register
 Content-Type: application/json
 
@@ -57,18 +18,18 @@ Content-Type: application/json
   "password": "SecurePassword123!"
 }
 
-  ### Login with correct password
 
+### Login user 1
 POST {{Aegis.Api_HostAddress}}/api/auth/login
 Content-Type: application/json
 
 {
   "email": "emma@example.com",
   "password": "SecurePassword123!"
-} 
+}
 
-### Login with wrong password
 
+### Invalid login
 POST {{Aegis.Api_HostAddress}}/api/auth/login
 Content-Type: application/json
 
@@ -77,8 +38,118 @@ Content-Type: application/json
   "password": "WrongPassword123!"
 }
 
-### Get projects - authenticated
 
+### Register user 2
+POST {{Aegis.Api_HostAddress}}/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "user2@example.com",
+  "password": "SecurePassword456!"
+}
+
+
+### Login user 2
+POST {{Aegis.Api_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "user2@example.com",
+  "password": "SecurePassword456!"
+}
+
+
+### =========================
+### PROJECTS - USER 1
+### =========================
+
+
+### Get user 1 projects
 GET {{Aegis.Api_HostAddress}}/api/projects
 Accept: application/json
 Authorization: Bearer {{token}}
+
+
+### Get project by ID
+GET {{Aegis.Api_HostAddress}}/api/projects/3
+Accept: application/json
+Authorization: Bearer {{token}}
+
+
+### Create project
+POST {{Aegis.Api_HostAddress}}/api/projects
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "Aegis Security Project",
+  "description": "Project owned by the authenticated user"
+}
+
+
+### Update project
+PUT {{Aegis.Api_HostAddress}}/api/projects/3
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "Aegis Security Project Updated",
+  "description": "Updated by the project owner"
+}
+
+
+### Delete project
+DELETE {{Aegis.Api_HostAddress}}/api/projects/3
+Authorization: Bearer {{token}}
+
+
+### =========================
+### AUTHORIZATION TESTS
+### =========================
+
+
+### User 2 tries to read user 1 project
+GET {{Aegis.Api_HostAddress}}/api/projects/3
+Accept: application/json
+Authorization: Bearer {{token2}}
+
+
+### User 2 tries to update user 1 project
+PUT {{Aegis.Api_HostAddress}}/api/projects/3
+Content-Type: application/json
+Authorization: Bearer {{token2}}
+
+{
+  "name": "Unauthorized update",
+  "description": "This request should not succeed"
+}
+
+
+### User 2 tries to delete user 1 project
+DELETE {{Aegis.Api_HostAddress}}/api/projects/3
+Authorization: Bearer {{token2}}
+
+
+### =========================
+### VALIDATION TESTS
+### =========================
+
+
+### Missing project name
+POST {{Aegis.Api_HostAddress}}/api/projects
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "description": "This request should fail because name is missing"
+}
+
+
+### =========================
+### AUTHENTICATION TESTS
+### =========================
+
+
+### Try accessing projects without token
+GET {{Aegis.Api_HostAddress}}/api/projects
+Accept: application/json

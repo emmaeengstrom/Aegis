@@ -4,6 +4,7 @@ using Aegis.Api.DTOs;
 using Aegis.Api.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace Aegis.Api.Controllers
 {
@@ -23,7 +24,15 @@ namespace Aegis.Api.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<ProjectResponse>>> GetProjects()
         {
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (!int.TryParse(userIdClaim, out var userId))
+            {
+                return Unauthorized();
+            }
+
             var projects = await _context.Projects
+                .Where(project => project.OwnerId == userId)
                 .Select(project => new ProjectResponse
                 {
                     Id = project.Id,
@@ -40,7 +49,18 @@ namespace Aegis.Api.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<ProjectResponse>> GetProject(int id)
         {
-            var project = await _context.Projects.FindAsync(id);
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (!int.TryParse(userIdClaim, out var userId))
+            {
+                return Unauthorized();
+            }
+
+            var project = await _context.Projects
+                .FirstOrDefaultAsync(project =>
+                    project.Id == id &&
+                    project.OwnerId == userId
+                );
 
             if (project == null)
             {
@@ -63,10 +83,18 @@ namespace Aegis.Api.Controllers
         public async Task<ActionResult<ProjectResponse>> CreateProject(
             CreateProjectRequest request)
         {
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (!int.TryParse(userIdClaim, out var userId))
+            {
+                return Unauthorized();
+            }
+
             var project = new Project
             {
                 Name = request.Name,
-                Description = request.Description
+                Description = request.Description,
+                OwnerId = userId
             };
 
             _context.Projects.Add(project);
@@ -94,7 +122,18 @@ namespace Aegis.Api.Controllers
             int id,
             UpdateProjectRequest request)
         {
-            var project = await _context.Projects.FindAsync(id);
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (!int.TryParse(userIdClaim, out var userId))
+            {
+                return Unauthorized();
+            }
+
+            var project = await _context.Projects
+                .FirstOrDefaultAsync(project =>
+                    project.Id == id &&
+                    project.OwnerId == userId
+                );
 
             if (project == null)
             {
@@ -113,7 +152,18 @@ namespace Aegis.Api.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteProject(int id)
         {
-            var project = await _context.Projects.FindAsync(id);
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (!int.TryParse(userIdClaim, out var userId))
+            {
+                return Unauthorized();
+            }
+
+            var project = await _context.Projects
+                .FirstOrDefaultAsync(project =>
+                    project.Id == id &&
+                    project.OwnerId == userId
+                );
 
             if (project == null)
             {
