@@ -1,4 +1,5 @@
-﻿using Aegis.Api.Data;
+﻿using Microsoft.AspNetCore.Authorization;
+using Aegis.Api.Data;
 using Aegis.Api.DTOs;
 using Aegis.Api.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -8,6 +9,7 @@ namespace Aegis.Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class ProjectsController : ControllerBase
     {
         private readonly AegisDbContext _context;

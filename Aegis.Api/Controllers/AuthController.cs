@@ -1,4 +1,8 @@
-﻿using Aegis.Api.Data;
+﻿using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
+using Aegis.Api.Data;
 using Aegis.Api.DTOs;
 using Aegis.Api.Models;
 using Microsoft.AspNetCore.Identity;
@@ -13,10 +17,14 @@ namespace Aegis.Api.Controllers
     {
         private readonly AegisDbContext _context;
         private readonly PasswordHasher<User> _passwordHasher;
+        private readonly IConfiguration _configuration;
 
-        public AuthController(AegisDbContext context)
+        public AuthController(
+            AegisDbContext context,
+            IConfiguration configuration)
         {
             _context = context;
+            _configuration = configuration;
             _passwordHasher = new PasswordHasher<User>();
         }
 
@@ -76,10 +84,49 @@ namespace Aegis.Api.Controllers
                 return Unauthorized("Invalid email or password.");
             }
 
+            var claims = new List<Claim>
+            {
+                new Claim(
+                    ClaimTypes.NameIdentifier,
+                    user.Id.ToString()
+                ),
+
+                new Claim(
+                    ClaimTypes.Email,
+                    user.Email
+                )
+            };
+
+            var jwtKey = _configuration["Jwt:Key"]
+                ?? throw new InvalidOperationException(
+                    "JWT key is missing."
+                );
+
+            var key = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(jwtKey)
+            );
+
+            var credentials = new SigningCredentials(
+                key,
+                SecurityAlgorithms.HmacSha256
+            );
+
+            var token = new JwtSecurityToken(
+                issuer: _configuration["Jwt:Issuer"],
+                audience: _configuration["Jwt:Audience"],
+                claims: claims,
+                expires: DateTime.UtcNow.AddHours(1),
+                signingCredentials: credentials
+            );
+
+            var tokenString = new JwtSecurityTokenHandler()
+                .WriteToken(token);
+
             return Ok(new
             {
                 user.Id,
-                user.Email
+                user.Email,
+                token = tokenString
             });
         }
     }

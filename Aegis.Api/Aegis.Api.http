@@ -1,4 +1,6 @@
-@Aegis.Api_HostAddress = http://localhost:5139
+@Aegis.Api_HostAddress = https://localhost:7269
+@token = YOUR_JWT_TOKEN_HERE
+
 
 ### Get all projects
 
@@ -74,3 +76,9 @@ Content-Type: application/json
   "email": "emma@example.com",
   "password": "WrongPassword123!"
 }
+
+### Get projects - authenticated
+
+GET {{Aegis.Api_HostAddress}}/api/projects
+Accept: application/json
+Authorization: Bearer {{token}}
