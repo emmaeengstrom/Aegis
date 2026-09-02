@@ -10,6 +10,6 @@
 
         public User User { get; set; } = null!;
 
-        public string Role { get; set; } = "Member";
+        public string Role { get; set; } = ProjectRoles.Viewer;
     }
 }

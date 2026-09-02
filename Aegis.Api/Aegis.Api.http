@@ -1,12 +1,13 @@
 @Aegis.Api_HostAddress = https://localhost:7269
+@token =
+@token2 =
+@projectId = 3
+@user2Id = 2
 
-@token = 
-@token2 = 
 
 ### =========================
 ### AUTHENTICATION
 ### =========================
-
 
 ### Register user 1
 POST {{Aegis.Api_HostAddress}}/api/auth/register
@@ -23,18 +24,8 @@ POST {{Aegis.Api_HostAddress}}/api/auth/login
 Content-Type: application/json
 
 {
-  "email": "EMma@eXample.com",
-  "password": "SecurePassword123!"
-}
-
-
-### Invalid login
-POST {{Aegis.Api_HostAddress}}/api/auth/login
-Content-Type: application/json
-
-{
   "email": "emma@example.com",
-  "password": "WrongPassword123!"
+  "password": "SecurePassword123!"
 }
 
 
@@ -58,19 +49,33 @@ Content-Type: application/json
 }
 
 
-### =========================
-### PROJECTS - USER 1
-### =========================
+### Invalid login
+POST {{Aegis.Api_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "emma@example.com",
+  "password": "WrongPassword123!"
+}
 
 
-### Get user 1 projects
+### Access protected endpoint without token
+GET {{Aegis.Api_HostAddress}}/api/projects
+Accept: application/json
+
+
+### =========================
+### PROJECTS
+### =========================
+
+### Get accessible projects - user 1
 GET {{Aegis.Api_HostAddress}}/api/projects
 Accept: application/json
 Authorization: Bearer {{token}}
 
 
-### Get project by ID
-GET {{Aegis.Api_HostAddress}}/api/projects/3
+### Get project by ID - user 1
+GET {{Aegis.Api_HostAddress}}/api/projects/{{projectId}}
 Accept: application/json
 Authorization: Bearer {{token}}
 
@@ -86,8 +91,8 @@ Authorization: Bearer {{token}}
 }
 
 
-### Update project
-PUT {{Aegis.Api_HostAddress}}/api/projects/3
+### Update project as owner
+PUT {{Aegis.Api_HostAddress}}/api/projects/{{projectId}}
 Content-Type: application/json
 Authorization: Bearer {{token}}
 
@@ -97,42 +102,9 @@ Authorization: Bearer {{token}}
 }
 
 
-### Delete project
-DELETE {{Aegis.Api_HostAddress}}/api/projects/3
-Authorization: Bearer {{token}}
-
-
 ### =========================
-### AUTHORIZATION TESTS
+### VALIDATION
 ### =========================
-
-
-### User 2 tries to read user 1 project
-GET {{Aegis.Api_HostAddress}}/api/projects/3
-Accept: application/json
-Authorization: Bearer {{token2}}
-
-
-### User 2 tries to update user 1 project
-PUT {{Aegis.Api_HostAddress}}/api/projects/3
-Content-Type: application/json
-Authorization: Bearer {{token2}}
-
-{
-  "name": "Unauthorized update",
-  "description": "This request should not succeed"
-}
-
-
-### User 2 tries to delete user 1 project
-DELETE {{Aegis.Api_HostAddress}}/api/projects/3
-Authorization: Bearer {{token2}}
-
-
-### =========================
-### VALIDATION TESTS
-### =========================
-
 
 ### Missing project name
 POST {{Aegis.Api_HostAddress}}/api/projects
@@ -145,72 +117,149 @@ Authorization: Bearer {{token}}
 
 
 ### =========================
-### AUTHENTICATION TESTS
+### PROJECT MEMBERS
 ### =========================
 
-
-### Try accessing projects without token
-GET {{Aegis.Api_HostAddress}}/api/projects
-Accept: application/json
-
-### User 1 adds user 2 as project member
-POST {{Aegis.Api_HostAddress}}/api/projects/3/members
+### Add user 2 as Viewer
+POST {{Aegis.Api_HostAddress}}/api/projects/{{projectId}}/members
 Content-Type: application/json
 Authorization: Bearer {{token}}
 
 {
-  "email": "user2@example.com"
-} 
-
-### User 2 tries to add a member to user 1 project
-POST {{Aegis.Api_HostAddress}}/api/projects/3/members
-Content-Type: application/json
-Authorization: Bearer {{token2}}
-
-{
-  "email": "emma@example.com"
+  "email": "user2@example.com",
+  "role": "Viewer"
 }
 
-### User 2 reads project as member
-GET {{Aegis.Api_HostAddress}}/api/projects/3
+
+### List project members as owner
+GET {{Aegis.Api_HostAddress}}/api/projects/{{projectId}}/members
 Accept: application/json
-Authorization: Bearer {{token2}} 
-
-### User 2 lists accessible projects
-GET {{Aegis.Api_HostAddress}}/api/projects
-Accept: application/json
-Authorization: Bearer {{token2}}
-
-### User 2 tries to update project
-PUT {{Aegis.Api_HostAddress}}/api/projects/3
-Content-Type: application/json
-Authorization: Bearer {{token2}}
-
-{
-  "name": "Unauthorized update",
-  "description": "This should still fail"
-}
-
-### User 1 lists project members
-GET {{Aegis.Api_HostAddress}}/api/projects/3/members
-Accept: application/json
-Authorization: Bearer {{token}} 
-
-### User 2 tries to list project members
-GET {{Aegis.Api_HostAddress}}/api/projects/3/members
-Accept: application/json
-Authorization: Bearer {{token2}}
-
-### User 2 can read project before removal
-GET {{Aegis.Api_HostAddress}}/api/projects/3
-Accept: application/json
-Authorization: Bearer {{token2}} 
-
-### User 1 removes user 2 from project
-DELETE {{Aegis.Api_HostAddress}}/api/projects/3/members/2
 Authorization: Bearer {{token}}
 
-### User 2 tries to read project after removal
-GET {{Aegis.Api_HostAddress}}/api/projects/3
+
+### Member cannot list project members
+GET {{Aegis.Api_HostAddress}}/api/projects/{{projectId}}/members
 Accept: application/json
 Authorization: Bearer {{token2}}
+
+
+### Try to assign forbidden Owner role
+POST {{Aegis.Api_HostAddress}}/api/projects/{{projectId}}/members
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "email": "user2@example.com",
+  "role": "Owner"
+}
+
+
+### =========================
+### VIEWER AUTHORIZATION
+### =========================
+
+### Viewer can read project
+GET {{Aegis.Api_HostAddress}}/api/projects/{{projectId}}
+Accept: application/json
+Authorization: Bearer {{token2}}
+
+
+### Viewer cannot update project
+PUT {{Aegis.Api_HostAddress}}/api/projects/{{projectId}}
+Content-Type: application/json
+Authorization: Bearer {{token2}}
+
+{
+  "name": "Viewer should not update this",
+  "description": "This request should be blocked."
+}
+
+
+### =========================
+### ROLE MANAGEMENT
+### =========================
+
+### Owner changes user 2 to Editor
+PUT {{Aegis.Api_HostAddress}}/api/projects/{{projectId}}/members/{{user2Id}}/role
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "role": "Editor"
+}
+
+
+### Verify role
+GET {{Aegis.Api_HostAddress}}/api/projects/{{projectId}}/members
+Accept: application/json
+Authorization: Bearer {{token}}
+
+
+### =========================
+### EDITOR AUTHORIZATION
+### =========================
+
+### Editor can update project
+PUT {{Aegis.Api_HostAddress}}/api/projects/{{projectId}}
+Content-Type: application/json
+Authorization: Bearer {{token2}}
+
+{
+  "name": "Updated by Editor",
+  "description": "This project was updated by user2 with the Editor role."
+}
+
+
+### Verify Editor update
+GET {{Aegis.Api_HostAddress}}/api/projects/{{projectId}}
+Accept: application/json
+Authorization: Bearer {{token2}}
+
+
+### =========================
+### PRIVILEGE ESCALATION TESTS
+### =========================
+
+### Change user 2 back to Viewer
+PUT {{Aegis.Api_HostAddress}}/api/projects/{{projectId}}/members/{{user2Id}}/role
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "role": "Viewer"
+}
+
+
+### User 2 cannot promote themselves
+PUT {{Aegis.Api_HostAddress}}/api/projects/{{projectId}}/members/{{user2Id}}/role
+Content-Type: application/json
+Authorization: Bearer {{token2}}
+
+{
+  "role": "Editor"
+}
+
+
+### =========================
+### MEMBER REMOVAL
+### =========================
+
+### Owner removes user 2
+DELETE {{Aegis.Api_HostAddress}}/api/projects/{{projectId}}/members/{{user2Id}}
+Authorization: Bearer {{token}}
+
+
+### Removed user can no longer read project
+GET {{Aegis.Api_HostAddress}}/api/projects/{{projectId}}
+Accept: application/json
+Authorization: Bearer {{token2}}
+
+
+### =========================
+### DESTRUCTIVE PROJECT TEST
+### RUN ONLY WHEN NEEDED
+### =========================
+
+### Delete project as owner
+DELETE {{Aegis.Api_HostAddress}}/api/projects/{{projectId}}
+Authorization: Bearer {{token}}

@@ -2,12 +2,8 @@
 
 namespace Aegis.Api.DTOs
 {
-    public class AddProjectMemberRequest
+    public class UpdateProjectMemberRoleRequest
     {
-        [Required]
-        [EmailAddress]
-        public string Email { get; set; } = string.Empty;
-
         [Required]
         public string Role { get; set; } = string.Empty;
     }

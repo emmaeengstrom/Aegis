@@ -138,7 +138,13 @@ namespace Aegis.Api.Controllers
             var project = await _context.Projects
                 .FirstOrDefaultAsync(project =>
                     project.Id == id &&
-                    project.OwnerId == userId
+                    (
+                        project.OwnerId == userId ||
+                        project.Members.Any(member =>
+                            member.UserId == userId &&
+                            member.Role == ProjectRoles.Editor
+                        )
+                    )
                 );
 
             if (project == null)
@@ -182,6 +188,16 @@ namespace Aegis.Api.Controllers
                 .Trim()
                 .ToLowerInvariant();
 
+            var normalizedRole = request.Role.Trim();
+
+            if (normalizedRole != ProjectRoles.Viewer &&
+                normalizedRole != ProjectRoles.Editor)
+            {
+                return BadRequest(
+                    "Role must be either Viewer or Editor."
+                );
+            }
+
             var userToAdd = await _context.Users
                 .FirstOrDefaultAsync(user =>
                     user.Email == normalizedEmail
@@ -216,7 +232,7 @@ namespace Aegis.Api.Controllers
             {
                 ProjectId = id,
                 UserId = userToAdd.Id,
-                Role = "Member"
+                Role = normalizedRole
             };
 
             _context.ProjectMembers.Add(projectMember);
@@ -264,6 +280,59 @@ namespace Aegis.Api.Controllers
                 .ToListAsync();
 
             return Ok(members);
+        }
+
+        // PUT: /api/projects/1/members/2/role
+        [HttpPut("{id}/members/{userId}/role")]
+        public async Task<IActionResult> UpdateProjectMemberRole(
+            int id,
+            int userId,
+            UpdateProjectMemberRoleRequest request)
+        {
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (!int.TryParse(userIdClaim, out var currentUserId))
+            {
+                return Unauthorized();
+            }
+
+            var project = await _context.Projects
+                .FirstOrDefaultAsync(project =>
+                    project.Id == id &&
+                    project.OwnerId == currentUserId
+                );
+
+            if (project == null)
+            {
+                return NotFound();
+            }
+
+            var normalizedRole = request.Role.Trim();
+
+            if (normalizedRole != ProjectRoles.Viewer &&
+                normalizedRole != ProjectRoles.Editor)
+            {
+                return BadRequest(
+                    "Role must be either Viewer or Editor."
+                );
+            }
+
+            var membership = await _context.ProjectMembers
+                .FirstOrDefaultAsync(member =>
+                    member.ProjectId == id &&
+                    member.UserId == userId
+                );
+
+            if (membership == null)
+            {
+                return NotFound("Project member not found.");
+            }
+
+            membership.Role = normalizedRole;
+
+            await _context.SaveChangesAsync();
+
+            return NoContent();
         }
 
         // DELETE: /api/projects/1/members/2
