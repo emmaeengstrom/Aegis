@@ -266,6 +266,47 @@ namespace Aegis.Api.Controllers
             return Ok(members);
         }
 
+        // DELETE: /api/projects/1/members/2
+        [HttpDelete("{id}/members/{userId}")]
+        public async Task<IActionResult> RemoveProjectMember(
+            int id,
+            int userId)
+        {
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (!int.TryParse(userIdClaim, out var currentUserId))
+            {
+                return Unauthorized();
+            }
+
+            var project = await _context.Projects
+                .FirstOrDefaultAsync(project =>
+                    project.Id == id &&
+                    project.OwnerId == currentUserId
+                );
+
+            if (project == null)
+            {
+                return NotFound();
+            }
+
+            var membership = await _context.ProjectMembers
+                .FirstOrDefaultAsync(member =>
+                    member.ProjectId == id &&
+                    member.UserId == userId
+                );
+
+            if (membership == null)
+            {
+                return NotFound("Project member not found.");
+            }
+
+            _context.ProjectMembers.Remove(membership);
+
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
 
         // DELETE: /api/projects/1
         [HttpDelete("{id}")]

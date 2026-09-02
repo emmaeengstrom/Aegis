@@ -200,3 +200,17 @@ Authorization: Bearer {{token}}
 GET {{Aegis.Api_HostAddress}}/api/projects/3/members
 Accept: application/json
 Authorization: Bearer {{token2}}
+
+### User 2 can read project before removal
+GET {{Aegis.Api_HostAddress}}/api/projects/3
+Accept: application/json
+Authorization: Bearer {{token2}} 
+
+### User 1 removes user 2 from project
+DELETE {{Aegis.Api_HostAddress}}/api/projects/3/members/2
+Authorization: Bearer {{token}}
+
+### User 2 tries to read project after removal
+GET {{Aegis.Api_HostAddress}}/api/projects/3
+Accept: application/json
+Authorization: Bearer {{token2}}
