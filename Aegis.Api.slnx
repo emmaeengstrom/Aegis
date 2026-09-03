@@ -1,3 +1,4 @@
 <Solution>
+  <Project Path="Aegis.Api.IntegrationTests/Aegis.Api.IntegrationTests.csproj" Id="ba4fd48e-92d0-4b11-9dec-367517290310" />
   <Project Path="Aegis.Api/Aegis.Api.csproj" />
 </Solution>
