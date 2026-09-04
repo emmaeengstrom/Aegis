@@ -15,5 +15,7 @@
         public User? Owner { get; set; }
 
         public List<ProjectMember> Members { get; set; } = new();
+
+        public List<ProjectTask> Tasks { get; set; } = new();
     }
-}
+}  
