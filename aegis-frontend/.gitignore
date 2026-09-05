@@ -22,3 +22,13 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Environment files
+.env
+.env.development
+.env.production
+.env.*.local
+
+# Keep the environment template in Git
+!.env.example
+  

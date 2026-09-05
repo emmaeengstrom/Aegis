@@ -1,4 +1,6 @@
-const API_BASE_URL = 'https://localhost:7269'
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  'https://localhost:7269'
 
 export function getAuthToken() {
   return sessionStorage.getItem('aegis_token')
@@ -19,7 +21,10 @@ export async function apiFetch(
   const headers = new Headers(options.headers)
 
   if (token) {
-    headers.set('Authorization', `Bearer ${token}`)
+    headers.set(
+      'Authorization',
+      `Bearer ${token}`,
+    )
   }
 
   if (

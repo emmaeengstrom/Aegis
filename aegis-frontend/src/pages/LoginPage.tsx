@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { apiFetch } from '../api' 
 
 type LoginResponse = {
   id: number
@@ -23,19 +24,16 @@ function LoginPage() {
     setIsLoading(true)
 
     try {
-      const response = await fetch(
-        'https://localhost:7269/api/auth/login',
+      const response = await apiFetch(
+        '/api/auth/login',
         {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
           body: JSON.stringify({
             email,
             password,
           }),
         },
-      )
+      ) 
 
       if (!response.ok) {
         if (response.status === 401) {

@@ -7,6 +7,7 @@ using Aegis.Api.DTOs;
 using Aegis.Api.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 
 namespace Aegis.Api.Controllers
@@ -30,6 +31,7 @@ namespace Aegis.Api.Controllers
 
         // POST: /api/auth/register
         [HttpPost("register")]
+        [EnableRateLimiting("auth")]
         public async Task<IActionResult> Register(RegisterRequest request)
         {
             var normalizedEmail = request.Email
@@ -67,6 +69,7 @@ namespace Aegis.Api.Controllers
 
         // POST: /api/auth/login
         [HttpPost("login")]
+        [EnableRateLimiting("auth")]
         public async Task<IActionResult> Login(LoginRequest request)
         {
             var normalizedEmail = request.Email
@@ -138,4 +141,4 @@ namespace Aegis.Api.Controllers
             });
         }
     }
-}
+} 
