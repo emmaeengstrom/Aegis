@@ -6,19 +6,25 @@ import type {
   Project,
   ProjectMember,
   ProjectTab,
+  ProjectTask,
 } from '../types'
 import {
   addProjectMember,
+  createProjectTask,
+  deleteProjectTask,
   getProject,
   getProjectAuditLogs,
   getProjectMembers,
+  getProjectTasks,
   removeProjectMember,
   updateProjectMemberRole,
+  updateProjectTask,
 } from '../api/projects'
 
 import ProjectOverview from '../components/project/ProjectOverview'
 import ProjectActivity from '../components/project/ProjectActivity'
 import ProjectMembers from '../components/project/ProjectMembers'
+import ProjectTasks from '../components/project/ProjectTasks'
 import '../App.css'
 
 function ProjectPage() {
@@ -31,6 +37,9 @@ function ProjectPage() {
   const [members, setMembers] =
     useState<ProjectMember[]>([])
 
+  const [tasks, setTasks] =
+    useState<ProjectTask[]>([])
+
   const [activeTab, setActiveTab] =
     useState<ProjectTab>('overview')
 
@@ -40,10 +49,16 @@ function ProjectPage() {
   const [isLoadingMembers, setIsLoadingMembers] =
     useState(false)
 
+  const [isLoadingTasks, setIsLoadingTasks] =
+    useState(false)
+
   const [error, setError] =
     useState('')
 
   const [membersError, setMembersError] =
+    useState('')
+
+  const [tasksError, setTasksError] =
     useState('')
 
   const [showAddMemberForm, setShowAddMemberForm] =
@@ -59,6 +74,21 @@ function ProjectPage() {
     useState(false)
 
   const [addMemberError, setAddMemberError] =
+    useState('')
+
+  const [showAddTaskForm, setShowAddTaskForm] =
+    useState(false)
+
+  const [taskTitle, setTaskTitle] =
+    useState('')
+
+  const [taskDescription, setTaskDescription] =
+    useState('')
+
+  const [isAddingTask, setIsAddingTask] =
+    useState(false)
+
+  const [addTaskError, setAddTaskError] =
     useState('')
 
   const [auditLogs, setAuditLogs] =
@@ -110,6 +140,205 @@ function ProjectPage() {
 
     loadProject()
   }, [id, navigate])
+
+  async function loadTasks() {
+    setActiveTab('tasks')
+    setTasksError('')
+    setIsLoadingTasks(true)
+
+    try {
+      const response =
+        await getProjectTasks(id!)
+
+      if (response.status === 401) {
+        navigate('/login')
+        return
+      }
+
+      if (response.status === 404) {
+        setTasksError(
+          'Project not found or you do not have access.',
+        )
+        return
+      }
+
+      if (!response.ok) {
+        setTasksError(
+          'Could not load tasks.',
+        )
+        return
+      }
+
+      const data: ProjectTask[] =
+        await response.json()
+
+      setTasks(data)
+    } catch {
+      setTasksError(
+        'Could not connect to the server.',
+      )
+    } finally {
+      setIsLoadingTasks(false)
+    }
+  }
+
+  async function handleAddTask(
+    event: FormEvent<HTMLFormElement>,
+  ) {
+    event.preventDefault()
+
+    setAddTaskError('')
+    setIsAddingTask(true)
+
+    try {
+      const response =
+        await createProjectTask(
+          id!,
+          taskTitle,
+          taskDescription,
+        )
+
+      if (response.status === 401) {
+        navigate('/login')
+        return
+      }
+
+      if (response.status === 404) {
+        setAddTaskError(
+          'You do not have permission to create tasks.',
+        )
+        return
+      }
+
+      if (!response.ok) {
+        const message =
+          await response.text()
+
+        setAddTaskError(
+          message || 'Could not create task.',
+        )
+        return
+      }
+
+      const newTask: ProjectTask =
+        await response.json()
+
+      setTasks((currentTasks) => [
+        newTask,
+        ...currentTasks,
+      ])
+
+      setTaskTitle('')
+      setTaskDescription('')
+      setShowAddTaskForm(false)
+    } catch {
+      setAddTaskError(
+        'Could not connect to the server.',
+      )
+    } finally {
+      setIsAddingTask(false)
+    }
+  }
+
+  async function handleTaskStatusChange(
+    task: ProjectTask,
+    newStatus: ProjectTask['status'],
+  ) {
+    try {
+      const response =
+        await updateProjectTask(
+          id!,
+          task.id,
+          task.title,
+          task.description,
+          newStatus,
+        )
+
+      if (response.status === 401) {
+        navigate('/login')
+        return
+      }
+
+      if (response.status === 404) {
+        alert(
+          'You do not have permission to update this task.',
+        )
+        return
+      }
+
+      if (!response.ok) {
+        alert(
+          'Could not update task status.',
+        )
+        return
+      }
+
+      setTasks((currentTasks) =>
+        currentTasks.map((currentTask) =>
+          currentTask.id === task.id
+            ? {
+                ...currentTask,
+                status: newStatus,
+              }
+            : currentTask,
+        ),
+      )
+    } catch {
+      alert(
+        'Could not connect to the server.',
+      )
+    }
+  }
+
+  async function handleDeleteTask(
+    task: ProjectTask,
+  ) {
+    const confirmed = window.confirm(
+      `Delete "${task.title}"?`,
+    )
+
+    if (!confirmed) {
+      return
+    }
+
+    try {
+      const response =
+        await deleteProjectTask(
+          id!,
+          task.id,
+        )
+
+      if (response.status === 401) {
+        navigate('/login')
+        return
+      }
+
+      if (response.status === 404) {
+        alert(
+          'You do not have permission to delete this task.',
+        )
+        return
+      }
+
+      if (!response.ok) {
+        alert(
+          'Could not delete task.',
+        )
+        return
+      }
+
+      setTasks((currentTasks) =>
+        currentTasks.filter(
+          (currentTask) =>
+            currentTask.id !== task.id,
+        ),
+      )
+    } catch {
+      alert(
+        'Could not connect to the server.',
+      )
+    }
+  }
 
   async function loadMembers() {
     setActiveTab('members')
@@ -376,6 +605,17 @@ function ProjectPage() {
 
             <button
               className={`nav-item ${
+                activeTab === 'tasks'
+                  ? 'active'
+                  : ''
+              }`}
+              onClick={loadTasks}
+            >
+              Tasks
+            </button>
+
+            <button
+              className={`nav-item ${
                 activeTab === 'members'
                   ? 'active'
                   : ''
@@ -434,6 +674,56 @@ function ProjectPage() {
                 <ProjectOverview
                   project={project}
                 />
+              )}
+
+              {activeTab === 'tasks' && (
+                <ProjectTasks
+                  tasks={tasks}
+                  isLoadingTasks={
+                    isLoadingTasks
+                  }
+                  tasksError={tasksError}
+                  showAddTaskForm={
+                    showAddTaskForm
+                  }
+                  taskTitle={taskTitle}
+                  taskDescription={
+                    taskDescription
+                  }
+                  isAddingTask={
+                    isAddingTask
+                  }
+                  addTaskError={
+                    addTaskError
+                  }
+                  onToggleAddTaskForm={() =>
+                    setShowAddTaskForm(
+                      (current) =>
+                        !current,
+                    )
+                  }
+                  onCancelAddTaskForm={() => {
+                    setShowAddTaskForm(false)
+                    setAddTaskError('')
+                    setTaskTitle('')
+                    setTaskDescription('')
+                  }}
+                  onTaskTitleChange={
+                    setTaskTitle
+                  }
+                  onTaskDescriptionChange={
+                    setTaskDescription
+                  }
+                  onAddTask={
+                    handleAddTask
+                  }
+                  onTaskStatusChange={
+                    handleTaskStatusChange
+                  }
+                  onDeleteTask={
+                    handleDeleteTask
+                  } 
+                /> 
               )}
 
               {activeTab === 'members' && (
@@ -508,4 +798,4 @@ function ProjectPage() {
   )
 }
 
-export default ProjectPage
+export default ProjectPage 

@@ -65,4 +65,61 @@ export async function getProjectAuditLogs(
   return apiFetch(
     `/api/projects/${id}/audit-logs`,
   )
+}
+
+export async function getProjectTasks(
+  projectId: string,
+): Promise<Response> {
+  return apiFetch(
+    `/api/projects/${projectId}/tasks`,
+  )
+}
+
+export async function createProjectTask(
+  projectId: string,
+  title: string,
+  description: string,
+): Promise<Response> {
+  return apiFetch(
+    `/api/projects/${projectId}/tasks`,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        title,
+        description,
+      }),
+    },
+  )
+}
+
+export async function updateProjectTask(
+  projectId: string,
+  taskId: number,
+  title: string,
+  description: string,
+  status: string,
+): Promise<Response> {
+  return apiFetch(
+    `/api/projects/${projectId}/tasks/${taskId}`,
+    {
+      method: 'PUT',
+      body: JSON.stringify({
+        title,
+        description,
+        status,
+      }),
+    },
+  )
+}
+
+export async function deleteProjectTask(
+  projectId: string,
+  taskId: number,
+): Promise<Response> {
+  return apiFetch(
+    `/api/projects/${projectId}/tasks/${taskId}`,
+    {
+      method: 'DELETE',
+    },
+  )
 } 
