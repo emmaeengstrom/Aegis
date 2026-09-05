@@ -20,7 +20,17 @@ export type AuditLog = {
   createdAt: string
 }
 
+export type ProjectTask = {
+  id: number
+  title: string
+  description: string
+  status: 'Todo' | 'InProgress' | 'Done'
+  createdAt: string
+  projectId: number
+}
+
 export type ProjectTab =
   | 'overview'
+  | 'tasks'
   | 'members'
   | 'activity' 
