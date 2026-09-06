@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using Microsoft.EntityFrameworkCore; 
 
 namespace Aegis.Api.IntegrationTests
 {
@@ -618,6 +619,122 @@ namespace Aegis.Api.IntegrationTests
             Assert.Equal(
                 HttpStatusCode.NotFound,
                 response.StatusCode);
+        }
+
+        [Fact]
+        public async Task DeleteProject_PreservesAuditLogs()
+        {
+            await using var factory =
+                new AegisWebApplicationFactory();
+
+            int projectId;
+            int ownerUserId;
+            string ownerEmail;
+
+            using (var scope =
+                factory.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider
+                    .GetRequiredService<AegisDbContext>();
+
+                ownerEmail =
+                    $"owner-{Guid.NewGuid()}@example.com";
+
+                var owner = new User
+                {
+                    Email = ownerEmail,
+                    PasswordHash = "not-used-in-test"
+                };
+
+                db.Users.Add(owner);
+
+                await db.SaveChangesAsync();
+
+                var project = new Project
+                {
+                    Name = "Audit Preservation Project",
+                    Description =
+                        "Project used to test audit preservation",
+                    OwnerId = owner.Id
+                };
+
+                db.Projects.Add(project);
+
+                await db.SaveChangesAsync();
+
+                var existingAuditLog = new AuditLog
+                {
+                    UserId = owner.Id,
+                    ProjectId = project.Id,
+                    Action = "TestAction",
+                    Details = "Audit log created before deletion."
+                };
+
+                db.AuditLogs.Add(existingAuditLog);
+
+                await db.SaveChangesAsync();
+
+                projectId = project.Id;
+                ownerUserId = owner.Id;
+            }
+
+            using var client = factory.CreateClient();
+
+            var token = TestAuthHelper.CreateToken(
+                ownerUserId,
+                ownerEmail);
+
+            client.DefaultRequestHeaders.Authorization =
+                new AuthenticationHeaderValue(
+                    "Bearer",
+                    token);
+
+            var response = await client.DeleteAsync(
+                $"/api/projects/{projectId}");
+
+            Assert.Equal(
+                HttpStatusCode.NoContent,
+                response.StatusCode);
+
+            using (var scope =
+                factory.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider
+                    .GetRequiredService<AegisDbContext>();
+
+                var projectStillExists =
+                    await db.Projects.AnyAsync(
+                        project =>
+                            project.Id == projectId);
+
+                Assert.False(projectStillExists);
+
+                var preservedLogs =
+                    await db.AuditLogs
+                        .Where(log =>
+                            log.UserId == ownerUserId &&
+                            (
+                                log.Action == "TestAction" ||
+                                log.Action == "ProjectDeleted"
+                            ))
+                        .ToListAsync();
+
+                Assert.Equal(2, preservedLogs.Count);
+
+                Assert.All(
+                    preservedLogs,
+                    log => Assert.Null(log.ProjectId));
+
+                Assert.Contains(
+                    preservedLogs,
+                    log =>
+                        log.Action == "TestAction");
+
+                Assert.Contains(
+                    preservedLogs,
+                    log =>
+                        log.Action == "ProjectDeleted");
+            }
         }
     }
 }

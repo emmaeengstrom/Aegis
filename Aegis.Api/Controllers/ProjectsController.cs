@@ -103,21 +103,34 @@ namespace Aegis.Api.Controllers
                 OwnerId = userId
             };
 
-            _context.Projects.Add(project);
+            await using var transaction =
+                await _context.Database.BeginTransactionAsync();
 
-            await _context.SaveChangesAsync();
-
-            var auditLog = new AuditLog
+            try
             {
-                UserId = userId,
-                ProjectId = project.Id,
-                Action = "ProjectCreated",
-                Details = $"Created project '{project.Name}'."
-            };
+                _context.Projects.Add(project);
 
-            _context.AuditLogs.Add(auditLog);
+                await _context.SaveChangesAsync();
 
-            await _context.SaveChangesAsync();
+                var auditLog = new AuditLog
+                {
+                    UserId = userId,
+                    ProjectId = project.Id,
+                    Action = "ProjectCreated",
+                    Details = $"Created project '{project.Name}'."
+                };
+
+                _context.AuditLogs.Add(auditLog);
+
+                await _context.SaveChangesAsync();
+
+                await transaction.CommitAsync();
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
 
             var response = new ProjectResponse
             {
@@ -477,9 +490,13 @@ namespace Aegis.Api.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteProject(int id)
         {
-            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userIdClaim =
+                User.FindFirstValue(
+                    ClaimTypes.NameIdentifier);
 
-            if (!int.TryParse(userIdClaim, out var userId))
+            if (!int.TryParse(
+                    userIdClaim,
+                    out var userId))
             {
                 return Unauthorized();
             }
@@ -495,6 +512,18 @@ namespace Aegis.Api.Controllers
                 return NotFound();
             }
 
+            var projectNameForLog = project.Name;
+
+            var auditLog = new AuditLog
+            {
+                UserId = userId,
+                ProjectId = id,
+                Action = "ProjectDeleted",
+                Details =
+                    $"Deleted project '{projectNameForLog}'."
+            };
+
+            _context.AuditLogs.Add(auditLog);
             _context.Projects.Remove(project);
 
             await _context.SaveChangesAsync();
