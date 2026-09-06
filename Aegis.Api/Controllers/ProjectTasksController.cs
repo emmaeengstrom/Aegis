@@ -172,7 +172,6 @@ namespace Aegis.Api.Controllers
                 throw;
             }
 
-            await _dbContext.SaveChangesAsync();
 
             var response = new ProjectTaskResponse
             {

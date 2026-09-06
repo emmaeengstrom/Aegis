@@ -43,7 +43,9 @@ namespace Aegis.Api.Controllers
 
             if (emailExists)
             {
-                return Conflict("A user with this email already exists.");
+                return Conflict(
+                    "A user with this email already exists."
+                );
             }
 
             var user = new User
@@ -57,6 +59,7 @@ namespace Aegis.Api.Controllers
             );
 
             _context.Users.Add(user);
+
             await _context.SaveChangesAsync();
 
             return Created("", new
@@ -77,22 +80,42 @@ namespace Aegis.Api.Controllers
                 .ToLowerInvariant();
 
             var user = await _context.Users
-                .FirstOrDefaultAsync(user => user.Email == normalizedEmail);
+                .FirstOrDefaultAsync(
+                    user => user.Email == normalizedEmail
+                );
 
             if (user == null)
             {
-                return Unauthorized("Invalid email or password.");
+                return Unauthorized(
+                    "Invalid email or password."
+                );
             }
 
-            var result = _passwordHasher.VerifyHashedPassword(
-                user,
-                user.PasswordHash,
-                request.Password
-            );
+            var passwordVerificationResult =
+                _passwordHasher.VerifyHashedPassword(
+                    user,
+                    user.PasswordHash,
+                    request.Password
+                );
 
-            if (result == PasswordVerificationResult.Failed)
+            if (passwordVerificationResult ==
+                PasswordVerificationResult.Failed)
             {
-                return Unauthorized("Invalid email or password.");
+                return Unauthorized(
+                    "Invalid email or password."
+                );
+            }
+
+            if (passwordVerificationResult ==
+                PasswordVerificationResult.SuccessRehashNeeded)
+            {
+                user.PasswordHash =
+                    _passwordHasher.HashPassword(
+                        user,
+                        request.Password
+                    );
+
+                await _context.SaveChangesAsync();
             }
 
             var claims = new List<Claim>
@@ -113,6 +136,18 @@ namespace Aegis.Api.Controllers
                     "JWT key is missing."
                 );
 
+            var jwtIssuer =
+                _configuration["Jwt:Issuer"]
+                ?? throw new InvalidOperationException(
+                    "JWT issuer is missing."
+                );
+
+            var jwtAudience =
+                _configuration["Jwt:Audience"]
+                ?? throw new InvalidOperationException(
+                    "JWT audience is missing."
+                );
+
             var key = new SymmetricSecurityKey(
                 Encoding.UTF8.GetBytes(jwtKey)
             );
@@ -123,15 +158,16 @@ namespace Aegis.Api.Controllers
             );
 
             var token = new JwtSecurityToken(
-                issuer: _configuration["Jwt:Issuer"],
-                audience: _configuration["Jwt:Audience"],
+                issuer: jwtIssuer,
+                audience: jwtAudience,
                 claims: claims,
                 expires: DateTime.UtcNow.AddHours(1),
                 signingCredentials: credentials
             );
 
-            var tokenString = new JwtSecurityTokenHandler()
-                .WriteToken(token);
+            var tokenString =
+                new JwtSecurityTokenHandler()
+                    .WriteToken(token);
 
             return Ok(new
             {

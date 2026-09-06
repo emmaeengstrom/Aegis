@@ -96,10 +96,18 @@ namespace Aegis.Api.Controllers
                 return Unauthorized();
             }
 
+            var normalizedName = request.Name.Trim();
+            var normalizedDescription = request.Description.Trim();
+
+            if (string.IsNullOrWhiteSpace(normalizedName))
+            {
+                return BadRequest("Project name cannot be empty.");
+            }
+
             var project = new Project
             {
-                Name = request.Name,
-                Description = request.Description,
+                Name = normalizedName,
+                Description = normalizedDescription,
                 OwnerId = userId
             };
 
@@ -177,8 +185,16 @@ namespace Aegis.Api.Controllers
                 return NotFound();
             }
 
-            project.Name = request.Name;
-            project.Description = request.Description;
+            var normalizedName = request.Name.Trim();
+            var normalizedDescription = request.Description.Trim();
+
+            if (string.IsNullOrWhiteSpace(normalizedName))
+            {
+                return BadRequest("Project name cannot be empty.");
+            }
+
+            project.Name = normalizedName;
+            project.Description = normalizedDescription;
 
             var auditLog = new AuditLog
             {
@@ -520,7 +536,7 @@ namespace Aegis.Api.Controllers
                 ProjectId = id,
                 Action = "ProjectDeleted",
                 Details =
-                    $"Deleted project '{projectNameForLog}'."
+                    $"Deleted project {project.Id} '{projectNameForLog}'."
             };
 
             _context.AuditLogs.Add(auditLog);
@@ -531,4 +547,4 @@ namespace Aegis.Api.Controllers
             return NoContent();
         }
     }
-}
+} 
