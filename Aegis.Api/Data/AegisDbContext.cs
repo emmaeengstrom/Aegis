@@ -55,7 +55,7 @@ namespace Aegis.Api.Data
                 .HasOne(auditLog => auditLog.Project)
                 .WithMany()
                 .HasForeignKey(auditLog => auditLog.ProjectId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.SetNull);
 
             modelBuilder.Entity<ProjectTask>()
                 .HasOne(task => task.Project)

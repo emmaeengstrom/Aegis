@@ -6,7 +6,7 @@
 
         public int UserId { get; set; }
 
-        public int ProjectId { get; set; }
+        public int? ProjectId { get; set; }
 
         public string Action { get; set; } = string.Empty;
 
@@ -16,6 +16,6 @@
 
         public User User { get; set; } = null!;
 
-        public Project Project { get; set; } = null!;
+        public Project? Project { get; set; }
     }
 } 

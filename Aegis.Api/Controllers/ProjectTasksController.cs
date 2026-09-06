@@ -142,20 +142,35 @@ namespace Aegis.Api.Controllers
                 ProjectId = projectId
             };
 
-            _dbContext.ProjectTasks.Add(task);
+            await using var transaction =
+                await _dbContext.Database.BeginTransactionAsync();
 
-            await _dbContext.SaveChangesAsync();
-
-            var auditLog = new AuditLog
+            try
             {
-                UserId = userId.Value,
-                ProjectId = projectId,
-                Action = "TaskCreated",
-                Details =
-                    $"Created task {task.Id} '{task.Title}'."
-            };
+                _dbContext.ProjectTasks.Add(task);
 
-            _dbContext.AuditLogs.Add(auditLog);
+                await _dbContext.SaveChangesAsync();
+
+                var auditLog = new AuditLog
+                {
+                    UserId = userId.Value,
+                    ProjectId = projectId,
+                    Action = "TaskCreated",
+                    Details =
+                        $"Created task {task.Id} '{task.Title}'."
+                };
+
+                _dbContext.AuditLogs.Add(auditLog);
+
+                await _dbContext.SaveChangesAsync();
+
+                await transaction.CommitAsync();
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
 
             await _dbContext.SaveChangesAsync();
 
