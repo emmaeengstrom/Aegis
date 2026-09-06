@@ -24,9 +24,22 @@ namespace Aegis.Api.Data
         {
             base.OnModelCreating(modelBuilder);
 
-            modelBuilder.Entity<User>()
-                .HasIndex(user => user.Email)
-                .IsUnique();
+            modelBuilder.Entity<User>(entity =>
+            {
+                entity
+                    .HasIndex(user => user.Email)
+                    .IsUnique();
+
+                entity
+                    .Property(user => user.Email)
+                    .HasMaxLength(254)
+                    .IsRequired();
+
+                entity
+                    .Property(user => user.PasswordHash)
+                    .HasMaxLength(512)
+                    .IsRequired();
+            }); 
 
             modelBuilder.Entity<ProjectMember>()
                 .HasKey(projectMember => new
@@ -62,6 +75,45 @@ namespace Aegis.Api.Data
                 .WithMany(project => project.Tasks)
                 .HasForeignKey(task => task.ProjectId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Project>(entity =>
+            {
+                entity
+                    .Property(project => project.Name)
+                    .HasMaxLength(100)
+                    .IsRequired();
+
+                entity
+                    .Property(project => project.Description)
+                    .HasMaxLength(500)
+                    .IsRequired();
+            });
+
+            modelBuilder.Entity<ProjectMember>(entity =>
+            {
+                entity
+                    .Property(projectMember => projectMember.Role)
+                    .HasMaxLength(32)
+                    .IsRequired();
+            });
+
+            modelBuilder.Entity<ProjectTask>(entity =>
+            {
+                entity
+                    .Property(task => task.Title)
+                    .HasMaxLength(150)
+                    .IsRequired();
+
+                entity
+                    .Property(task => task.Description)
+                    .HasMaxLength(1000)
+                    .IsRequired();
+
+                entity
+                    .Property(task => task.Status)
+                    .HasMaxLength(32)
+                    .IsRequired();
+            }); 
         }
     }
 } 
